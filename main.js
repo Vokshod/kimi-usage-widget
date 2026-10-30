@@ -74,7 +74,7 @@ function setAutostart(on) {
   }
   const proj = __dirname;
   const vbs = path.join(proj, 'Kimi Usage Widget.vbs');
-  const icon = path.join(proj, 'node_modules', 'electron', 'dist', 'electron.exe');
+  const icon = path.join(proj, 'assets', 'icon.ico');
   const ps = [
     `$s = (New-Object -ComObject WScript.Shell).CreateShortcut('${lnk}')`,
     `$s.TargetPath = 'C:\\Windows\\System32\\wscript.exe'`,
@@ -220,6 +220,7 @@ function createWindow() {
   win = new BrowserWindow({
     width: Math.round(340 * settings.scale),
     height: Math.round(200 * settings.scale),
+    icon: path.join(__dirname, 'assets', 'icon.ico'),
     frame: false,
     transparent: true,
     resizable: false,
@@ -249,10 +250,7 @@ function createWindow() {
 }
 
 function createTray() {
-  // 16x16-ish empty template; text tray icons need a native build, keep simple
-  const img = nativeImage.createFromDataURL(
-    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAWElEQVR4nGNgGAWDHjAyMDAw/P//nxGXAkZGxv+45BhwaUZXhE0jIz5T8LmMEZ8p+ACG5v///zPCTIYBmDg2m9A1o2vCsBlZM7omDM3ImnBpQtE8CgY9AACJZBzt4B3quAAAAABJRU5ErkJggg=='
-  );
+  const img = nativeImage.createFromPath(path.join(__dirname, 'assets', 'icon.ico'));
   tray = new Tray(img);
   tray.setToolTip('Kimi Usage Widget');
   tray.on('click', () => (win.isVisible() ? win.hide() : win.show()));
