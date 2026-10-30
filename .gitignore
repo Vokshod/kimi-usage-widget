@@ -1,0 +1,17 @@
+node_modules/
+package-lock.json
+
+# dev-run artifacts
+dbg.log
+dbg.err
+verify-*.png
+shot-*.png
+widget-*.png
+
+# runtime state (userData lives outside the project, but never commit if moved)
+settings.json
+quota-history.json
+
+# OS noise
+Thumbs.db
+Desktop.ini

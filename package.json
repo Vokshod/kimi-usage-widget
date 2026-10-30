@@ -1,0 +1,14 @@
+{
+  "name": "kimi-usage-widget",
+  "version": "0.1.0",
+  "description": "Always-on-top desktop widget for Kimi Code quota: 5h session window, monthly quota, per-model stats, daily-equivalent estimates",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "test:data": "node test-data.js"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "33.4.11"
+  }
+}

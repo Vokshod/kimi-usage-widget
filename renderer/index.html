@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:" />
+  <title>Kimi Usage</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app" class="theme-dark">
+    <header id="drag">
+      <span class="brand">KIMI</span>
+      <span class="spacer"></span>
+      <button id="btn-refresh" class="icon-btn" title="Refresh">&#8635;</button>
+      <button id="btn-expand" class="icon-btn" title="Model stats">&#9662;</button>
+      <button id="btn-settings" class="icon-btn" title="Settings">&#9881;</button>
+      <button id="btn-hide" class="icon-btn" title="Hide to tray">&#8722;</button>
+    </header>
+
+    <div id="error" class="error hidden"></div>
+
+    <section class="block" id="block-session">
+      <div class="row label-row">
+        <span class="label">SESSION &middot; 5h</span>
+        <span class="value"><span id="sess-pct">–</span><span id="sess-reset" class="reset"></span></span>
+      </div>
+      <div class="bar"><div class="fill" id="sess-fill"></div></div>
+      <div class="sub" id="sess-pace"></div>
+    </section>
+
+    <section class="block" id="block-month">
+      <div class="row label-row">
+        <span class="label">MONTHLY</span>
+        <span class="value"><span id="month-pct">–</span><span id="month-reset" class="reset"></span></span>
+      </div>
+      <div class="bar"><div class="fill" id="month-fill"></div></div>
+      <div class="sub" id="month-daily"></div>
+    </section>
+
+    <section id="details" class="hidden">
+      <div class="details-title">MODEL USAGE &middot; TOKENS</div>
+      <div id="model-list"></div>
+      <div id="extra-usage" class="hidden"></div>
+      <div class="details-title">LAST 7 DAYS</div>
+      <div id="week-chart"></div>
+    </section>
+
+    <section id="settings-panel" class="hidden">
+      <div class="details-title">SETTINGS</div>
+      <label class="srow">Size
+        <input type="range" id="set-scale" min="0.6" max="1.6" step="0.05" />
+        <span id="set-scale-v"></span>
+      </label>
+      <label class="srow">Font
+        <input type="range" id="set-font" min="10" max="18" step="1" />
+        <span id="set-font-v"></span>
+      </label>
+      <label class="srow">Opacity
+        <input type="range" id="set-opacity" min="0.2" max="1" step="0.05" />
+        <span id="set-opacity-v"></span>
+      </label>
+      <label class="srow check"><input type="checkbox" id="set-aot" /> Always on top</label>
+      <label class="srow check"><input type="checkbox" id="set-autostart" /> Launch at Windows login</label>
+      <label class="srow check"><input type="checkbox" id="set-compact" /> Compact mode</label>
+      <label class="srow check"><input type="checkbox" id="set-theme" /> Light theme</label>
+      <label class="srow">Warn at
+        <input type="number" id="set-warn" min="0.5" max="0.95" step="0.05" class="num" />
+      </label>
+      <label class="srow">Danger at
+        <input type="number" id="set-danger" min="0.6" max="1" step="0.05" class="num" />
+      </label>
+      <label class="srow">Refresh every
+        <input type="number" id="set-poll" min="1" max="15" step="1" class="num" /> min
+      </label>
+    </section>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

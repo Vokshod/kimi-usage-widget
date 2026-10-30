@@ -1,0 +1,180 @@
+:root {
+  --font-size: 13px;
+  --bg: rgba(24, 24, 30, 0.92);
+  --border: rgba(255, 255, 255, 0.08);
+  --text: #e8e8ee;
+  --dim: #8b8b98;
+  --accent: #9b7bff;
+  --warn: #f5a623;
+  --danger: #ef5350;
+  --ok: #4caf7d;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body { background: transparent; overflow: hidden; }
+
+body {
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-size: var(--font-size);
+  color: var(--text);
+  user-select: none;
+}
+
+#app {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 8px 12px 10px;
+  backdrop-filter: blur(8px);
+  width: 100%;
+}
+
+#drag {
+  display: flex;
+  align-items: center;
+  -webkit-app-region: drag;
+  cursor: move;
+  padding-bottom: 6px;
+}
+
+#drag .spacer { flex: 1; -webkit-app-region: no-drag; }
+
+.brand {
+  font-weight: 700;
+  letter-spacing: 2px;
+  font-size: 0.85em;
+  color: var(--accent);
+}
+
+.icon-btn {
+  -webkit-app-region: no-drag;
+  background: none;
+  border: none;
+  color: var(--dim);
+  font-size: 1.05em;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+  line-height: 1;
+}
+.icon-btn:hover { color: var(--text); background: rgba(255, 255, 255, 0.07); }
+
+.error {
+  color: var(--danger);
+  font-size: 0.9em;
+  padding: 6px 2px;
+}
+
+.block { margin-top: 6px; }
+
+.label-row { display: flex; justify-content: space-between; align-items: baseline; }
+.label { font-size: 0.78em; letter-spacing: 1.2px; color: var(--dim); }
+.value { font-variant-numeric: tabular-nums; font-size: 0.95em; }
+.reset { color: var(--dim); font-size: 0.85em; margin-left: 8px; }
+
+.bar {
+  margin-top: 4px;
+  height: 8px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.09);
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 5px;
+  background: var(--accent);
+  transition: width 0.6s ease, background 0.4s ease;
+}
+.fill.warn { background: var(--warn); }
+.fill.danger { background: var(--danger); }
+
+.sub {
+  margin-top: 3px;
+  font-size: 0.82em;
+  color: var(--dim);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.sub .hot { color: var(--warn); }
+.sub .ok { color: var(--ok); }
+
+.details-title {
+  margin: 10px 0 4px;
+  font-size: 0.72em;
+  letter-spacing: 1.4px;
+  color: var(--dim);
+}
+
+#model-list .mrow {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.88em;
+  padding: 2px 0;
+  font-variant-numeric: tabular-nums;
+}
+#model-list .mname {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+#model-list .mnums { color: var(--dim); white-space: nowrap; }
+#model-list .mnums b { color: var(--text); font-weight: 600; }
+
+#extra-usage {
+  margin-top: 6px;
+  font-size: 0.85em;
+  color: var(--warn);
+}
+
+#week-chart { display: flex; align-items: flex-end; gap: 4px; height: 44px; padding-top: 4px; }
+#week-chart .wcol { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; }
+#week-chart .wbar {
+  width: 100%;
+  border-radius: 3px 3px 0 0;
+  background: var(--accent);
+  opacity: 0.75;
+  min-height: 2px;
+}
+#week-chart .wbar.today { opacity: 1; background: var(--ok); }
+#week-chart .wday { font-size: 0.66em; color: var(--dim); }
+
+.srow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.88em;
+  padding: 3px 0;
+  color: var(--text);
+}
+.srow input[type="range"] { flex: 1; accent-color: var(--accent); }
+.srow span { min-width: 36px; text-align: right; color: var(--dim); font-variant-numeric: tabular-nums; }
+.srow.check { gap: 6px; }
+.srow input[type="checkbox"] { accent-color: var(--accent); }
+.srow .num {
+  width: 56px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-size: 0.95em;
+}
+
+.hidden { display: none !important; }
+
+/* compact mode: bars only */
+#app.compact .sub,
+#app.compact .reset { display: none; }
+
+/* light theme */
+#app.theme-light {
+  --bg: rgba(250, 250, 253, 0.94);
+  --border: rgba(0, 0, 0, 0.08);
+  --text: #22222a;
+  --dim: #77778a;
+}
