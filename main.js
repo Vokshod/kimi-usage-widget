@@ -11,8 +11,8 @@ const { QuotaHistory } = require('./src/history');
 const POLL_MS = 60000;
 
 const DEFAULT_SETTINGS = {
-  scale: 1.0,          // overall UI scale (window content zoom)
-  fontSize: 13,        // base font size in px
+  scale: 1.1,          // overall UI scale (window content zoom)
+  fontSize: 15,        // base font size in px
   opacity: 1.0,        // window opacity 0.2..1
   alwaysOnTop: true,
   autostart: false,    // launch hidden at Windows login (startup-folder shortcut)
