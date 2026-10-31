@@ -54,19 +54,15 @@ function barClass(ratio) {
 function renderQuota(p) {
   lastQuota = p;
   const err = $('error');
-  if (p.stale) {
-    // refresh failed transiently; bars below are the last good data
-    err.textContent = `⚠ ${p.error} — showing last good data`;
-    err.className = 'error dim';
-    err.classList.remove('hidden');
-  } else if (!p.ok) {
+  // p.stale: refresh failed transiently (upstream blip) but last-good quota is
+  // served — deliberately silent, it self-heals next poll and isn't worth a banner
+  if (!p.ok && !p.stale) {
     err.textContent = p.error || 'Unknown error';
     err.className = 'error';
     err.classList.remove('hidden');
     return;
-  } else {
-    err.classList.add('hidden');
   }
+  err.classList.add('hidden');
 
   const now = Date.now();
 
