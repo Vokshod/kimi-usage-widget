@@ -54,12 +54,19 @@ function barClass(ratio) {
 function renderQuota(p) {
   lastQuota = p;
   const err = $('error');
-  if (!p.ok) {
+  if (p.stale) {
+    // refresh failed transiently; bars below are the last good data
+    err.textContent = `⚠ ${p.error} — showing last good data`;
+    err.className = 'error dim';
+    err.classList.remove('hidden');
+  } else if (!p.ok) {
     err.textContent = p.error || 'Unknown error';
+    err.className = 'error';
     err.classList.remove('hidden');
     return;
+  } else {
+    err.classList.add('hidden');
   }
-  err.classList.add('hidden');
 
   const now = Date.now();
 

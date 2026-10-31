@@ -174,13 +174,27 @@ function pollOnce() {
   return pollPromise;
 }
 
+// serve the last good quota for up to 10 minutes when refreshes fail
+// transiently (the local server's own upstream fetch fails often); only
+// surface a hard error when there is nothing usable left to show
+const STALE_MS = 10 * 60000;
+
 function buildPayload(quota) {
   const now = Date.now();
-  const payload = { ok: quota.ok, fetchedAt: now, settings };
-  if (!quota.ok) {
-    payload.error = quota.message || 'Unknown error';
+  if (!quota.ok && lastQuota && lastQuota.ok && (now - lastQuota.fetchedAt) < STALE_MS) {
+    const payload = buildFromQuota(lastQuota, now);
+    payload.stale = true;
+    payload.error = quota.message || 'Temporarily unavailable';
     return payload;
   }
+  if (!quota.ok) {
+    return { ok: false, fetchedAt: now, settings, error: quota.message || 'Unknown error' };
+  }
+  return buildFromQuota(quota, now);
+}
+
+function buildFromQuota(quota, now) {
+  const payload = { ok: true, fetchedAt: now, settings };
   payload.kind = quota.kind;
   payload.limit5h = quota.limit5h;
   payload.monthCode = quota.monthCode;

@@ -54,6 +54,12 @@ async function fetchQuota() {
     return { ok: false, reason: 'http', message: `Usage API returned HTTP ${res.status}` };
   }
   const body = await res.json().catch(() => null);
+  // the local server answers 200/code:0 even when ITS upstream fetch fails —
+  // it signals that as data.kind === 'error' with no quota payload. This is
+  // transient and frequent (upstream network blips), so it gets its own reason.
+  if (body && body.code === 0 && body.data && body.data.kind === 'error') {
+    return { ok: false, reason: 'upstream', message: 'Kimi usage service temporarily unavailable' };
+  }
   if (!body || body.code !== 0 || !body.data || !body.data.quota) {
     return { ok: false, reason: 'shape', message: 'Unexpected usage API response shape', raw: body };
   }
