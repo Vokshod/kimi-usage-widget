@@ -28,6 +28,7 @@ Dev-facing knowledge that took real debugging to acquire. **Do not "simplify" an
 ```
 
 - Non-`code:0` / malformed shapes must be treated as errors, never trusted field-by-field (the audit hardened this — see `docs/AUDIT-REPORT.md`).
+- **Transient upstream failures hide inside HTTP 200** (verified 2026-10-31): when the local server's OWN upstream fetch fails (frequent on this network — up to ~50% of polls in bursts), it still answers `code:0` but with `data: {"kind":"error","message":"Failed to fetch usage: fetch failed"}` and no `quota`. The widget treats this as reason `upstream` and serves the last good quota for up to 10 min (`STALE_MS`, stale-while-revalidate) **silently** — no banner, it self-heals. Red error only for real failures: unreachable, auth, or nothing fresh for 10+ min. Do NOT add a visible warning for the transient case; it just flickers.
 - The route is NOT under `/api/usage` etc. — it is `/api/v1/oauth/usage` (discovered by grepping the desktop app's JS bundle for `"/oauth/usage"` after guessing ~8 wrong paths).
 
 ### The 5h window is FIXED, not rolling
@@ -39,6 +40,16 @@ Official docs ([membership](https://www.kimi.com/code/docs/en/kimi-code/membersh
 - Consequence: nothing refills inside a window. The widget's session line therefore **projects** `usedRatio / elapsedFraction` ("on track to use N% of window"), it does not assume continuous refill.
 
 Empirical method that settled it: two `curl` polls 100s apart while idle, diff `resetAt`. (Note: `/oauth/usage` curls themselves are not metered; agent model calls are.)
+
+## Monthly budget & pacing math (verified correct 2026-10-31)
+
+Formulas in `main.js buildFromQuota` / `app.js renderQuota`, cross-checked against live API + real history samples:
+
+- **Budget/day** = `(1 − monthCode.usedRatio) / ceil((resetAt − now)/24h)`. The `ceil` is deliberate: a partial final day counts as a full day, so the budget spreads over remaining local calendar dates including today — apples-to-apples with per-calendar-day consumption. Conservative by up to ~1 day (up to 2× in the last hours); do not "fix" to fractional days.
+- **Consumed today** = current `usedRatio` − ratio linearly interpolated at local midnight from 1-min history samples. Verified live: midnight baseline 8.78%, current 10.99% → +2.21%.
+- **Pace verdict** = today ÷ budget/day; `under budget` < 0.75×, `X× over budget` > 1.25×.
+- **Known edge**: on monthly-reset day, `today` clamps to +0.00% (`Math.max(0, …)` — pre-reset baseline exceeds the fresh ratio). Harmless by design.
+- Budgeting uses `monthCode` only, ignoring `monthTotal`/`extraUsage`; once `monthCode` is exhausted the line shows "over budget" even if Extra Usage covers spend (no extraUsage data seen in the wild yet — `null` as of 2026-10-31).
 
 ## Platform quirks (Windows 10/11 + Electron 33, verified empirically)
 
