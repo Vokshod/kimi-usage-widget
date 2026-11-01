@@ -1,6 +1,6 @@
 'use strict';
 // Smoke test for the data modules: node test-data.js
-const { fetchQuota } = require('./src/quota');
+const { fetchQuota, fetchQuotaCloud } = require('./src/quota');
 const { aggregateWireStats } = require('./src/wirestats');
 const { QuotaHistory } = require('./src/history');
 
@@ -32,4 +32,17 @@ const { QuotaHistory } = require('./src/history');
   const h2 = new QuotaHistory(tmp);
   console.log(`persisted samples: ${h2.samples.length} (expected 2)`);
   try { fs.unlinkSync(tmp); } catch (_) {}
+
+  console.log('\n== cloud source (only if an apiToken is configured) ==');
+  const settingsPath = require('path').join(require('os').homedir(), 'AppData', 'Roaming', 'kimi-usage-widget', 'settings.json');
+  let apiToken = null;
+  try { apiToken = JSON.parse(fs.readFileSync(settingsPath, 'utf8')).apiToken; } catch (_) { /* no settings */ }
+  if (apiToken) {
+    const cloud = await fetchQuotaCloud(apiToken);
+    console.log(cloud.ok
+      ? `ok: 5h=${cloud.limit5h && cloud.limit5h.usedRatio} month=${cloud.monthCode && cloud.monthCode.usedRatio} extra=${cloud.extraUsage ? 'yes' : 'no'}`
+      : `FAILED (${cloud.reason}): ${cloud.message}`);
+  } else {
+    console.log('no apiToken in settings.json — skipped (set one in the widget to test)');
+  }
 })();

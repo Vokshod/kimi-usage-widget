@@ -96,4 +96,63 @@ async function fetchQuota() {
   };
 }
 
-module.exports = { fetchQuota, readServerInfo };
+// ---------- Cloud source: API key from the Kimi Code Console ----------
+// Same data the desktop app shows, but straight from Kimi's servers — works
+// even when the desktop app is closed. Endpoint and snake_case shape
+// recovered from the app's own bundle (the CLI's /usage calls the same URL):
+//   GET {base}/usages, Authorization: Bearer <api key>
+//   -> { usages: { limit_5h: {used_ratio, reset_time}, ... }, boosterWallet }
+const CLOUD_BASES = ['https://api.kimi.com/coding/v1', 'https://api.kimi.ai/coding/v1'];
+
+function normalizeCloudUsage(u) {
+  if (!u || typeof u !== 'object') return null;
+  const usedRatio = Number(u.used_ratio ?? u.usedRatio);
+  if (!Number.isFinite(usedRatio)) return null;
+  const resetAt = typeof u.reset_time === 'string' && u.reset_time.length > 0 ? u.reset_time : null;
+  return { usedRatio, resetAt };
+}
+
+async function fetchQuotaCloud(apiKey) {
+  let lastNetErr = null;
+  for (const base of CLOUD_BASES) {
+    try {
+      const res = await fetch(`${base}/usages`, {
+        headers: { Authorization: `Bearer ${apiKey}`, Accept: 'application/json' },
+        signal: AbortSignal.timeout(8000),
+      });
+      if (res.status === 401 || res.status === 403) {
+        const detail = await res.json().catch(() => null);
+        const why = detail && detail.error && detail.error.message ? `: ${detail.error.message}` : '';
+        return { ok: false, reason: 'auth', message: `API key rejected (${res.status})${why}` };
+      }
+      if (res.status === 404) {
+        lastNetErr = new Error(`HTTP 404 at ${base}`);
+        continue; // endpoint may only exist on the other region's host
+      }
+      if (!res.ok) {
+        return { ok: false, reason: 'http', message: `Usage API returned HTTP ${res.status}` };
+      }
+      const body = await res.json().catch(() => null);
+      if (!body || typeof body !== 'object' || !body.usages) {
+        return { ok: false, reason: 'shape', message: 'Unexpected cloud usage response shape', raw: body };
+      }
+      const u = body.usages || {};
+      return {
+        ok: true,
+        kind: 'ok',
+        source: 'api',
+        fetchedAt: Date.now(),
+        limit5h: normalizeCloudUsage(u.limit_5h),
+        limit7d: normalizeCloudUsage(u.limit_7d),
+        monthCode: normalizeCloudUsage(u.limit_month_code),
+        monthTotal: normalizeCloudUsage(u.limit_month_total),
+        extraUsage: body.boosterWallet || null,
+      };
+    } catch (err) {
+      lastNetErr = err; // network/geo failure — try the other region's host
+    }
+  }
+  return { ok: false, reason: 'unreachable', message: `Cloud usage API unreachable (${lastNetErr ? lastNetErr.message : 'fetch failed'})` };
+}
+
+module.exports = { fetchQuota, fetchQuotaCloud, readServerInfo };

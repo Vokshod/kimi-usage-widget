@@ -63,6 +63,7 @@ function renderQuota(p) {
     return;
   }
   err.classList.add('hidden');
+  $('src-badge').classList.toggle('hidden', p.source !== 'api');
 
   const now = Date.now();
 
@@ -220,6 +221,11 @@ function applySettingsToUI() {
   $('set-warn').value = settings.warnAt;
   $('set-danger').value = settings.dangerAt;
   $('set-poll').value = settings.pollMinutes;
+  // only write back when different — re-assigning .value on every keystroke
+  // would move the caret in the token field
+  if ($('set-apitoken').value !== (settings.apiToken || '')) {
+    $('set-apitoken').value = settings.apiToken || '';
+  }
 }
 
 async function bindSetting(id, key, parse) {
@@ -264,6 +270,7 @@ bindSetting('set-theme', 'theme', (checked) => (checked ? 'light' : 'dark'));
 bindSetting('set-warn', 'warnAt', Number);
 bindSetting('set-danger', 'dangerAt', Number);
 bindSetting('set-poll', 'pollMinutes', Number);
+bindSetting('set-apitoken', 'apiToken');
 
 // ---------- boot ----------
 (async () => {

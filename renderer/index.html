@@ -11,6 +11,7 @@
   <div id="app" class="theme-dark">
     <header id="drag">
       <span class="brand">KIMI</span>
+      <span id="src-badge" class="src-badge hidden" title="Usage comes from the cloud API (API token set)">API</span>
       <span class="spacer"></span>
       <button id="btn-refresh" class="icon-btn" title="Refresh">&#8635;</button>
       <button id="btn-expand" class="icon-btn" title="Model stats">&#9662;</button>
@@ -73,6 +74,10 @@
       <label class="srow">Refresh every
         <input type="number" id="set-poll" min="1" max="15" step="1" class="num" /> min
       </label>
+      <label class="srow">API token
+        <input type="password" id="set-apitoken" class="text" placeholder="from Kimi Code Console" autocomplete="off" spellcheck="false" />
+      </label>
+      <div class="hint">With an API token set, usage is read from Kimi's cloud (works without the desktop app). Clear it to use the desktop app connection.</div>
     </section>
   </div>
   <script src="app.js"></script>

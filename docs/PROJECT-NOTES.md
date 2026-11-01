@@ -31,6 +31,16 @@ Dev-facing knowledge that took real debugging to acquire. **Do not "simplify" an
 - **Transient upstream failures hide inside HTTP 200** (verified 2026-10-31): when the local server's OWN upstream fetch fails (frequent on this network — up to ~50% of polls in bursts), it still answers `code:0` but with `data: {"kind":"error","message":"Failed to fetch usage: fetch failed"}` and no `quota`. The widget treats this as reason `upstream` and serves the last good quota for up to 10 min (`STALE_MS`, stale-while-revalidate) **silently** — no banner, it self-heals. Red error only for real failures: unreachable, auth, or nothing fresh for 10+ min. Do NOT add a visible warning for the transient case; it just flickers.
 - The route is NOT under `/api/usage` etc. — it is `/api/v1/oauth/usage` (discovered by grepping the desktop app's JS bundle for `"/oauth/usage"` after guessing ~8 wrong paths).
 
+### Cloud source — API key (alternative to the local server)
+
+Set an API token in the widget settings (from the [Kimi Code Console](https://www.kimi.com/code/docs/en/) → API Keys, up to 5 per account) and usage is read **directly from Kimi's cloud** — works even when the desktop app is closed. Endpoint recovered from the desktop app's own bundle (the CLI `/usage` calls the same URL; not documented publicly):
+
+- `GET https://api.kimi.com/coding/v1/usages` (fallback on network/404: `https://api.kimi.ai/coding/v1/usages`), headers `Authorization: Bearer <key>`, `Accept: application/json`, 8s timeout.
+- Response shape (snake_case, normalized by `fetchQuotaCloud` in `src/quota.js`): `{ usages: { limit_5h, limit_7d, limit_month_total, limit_month_code: { used_ratio, reset_time } }, boosterWallet: { balanceCents, totalCents, monthlyChargeLimitEnabled, monthlyChargeLimitCents, monthlyUsedCents, currency } }`. `used_ratio` may be a number OR numeric string; `reset_time` may be absent.
+- Errors: 401/403 → key rejected (response body `error.message` is shown); 404 → that region's host lacks the endpoint, try the other.
+- Both hosts answer from a Russian IP (verified 2026-11-02) — no VPN needed. The OAuth `server.token` does NOT work as an API key (401).
+- Token is stored in `%APPDATA%\kimi-usage-widget\settings.json` (local only, never committed); empty string = back to the local desktop-app source. An "API" badge in the widget header shows which source is active.
+
 ### The 5h window is FIXED, not rolling
 
 Official docs ([membership](https://www.kimi.com/code/docs/en/kimi-code/membership.html), [plan rules](https://www.kimi.com/en/help/membership/membership-update-rules)) say "rolling 5-hour rate window" — but the live API behavior proves a **fixed window** (chained: a new window starts when the previous one ends):

@@ -124,16 +124,21 @@ const check = (name, cond, detail) => {
   await new Promise((r) => setTimeout(r, 300));
 
   console.log('== 6. warn/danger thresholds recolor bars ==');
-  await evalJs(`(() => { const el = document.getElementById('set-warn'); el.value = '0.2'; el.dispatchEvent(new Event('input', {bubbles:true})); return 1; })()`);
+  // threshold assertions must not depend on the CURRENT live usage: derive
+  // them from the bar's actual fill so the suite passes at any usage level
+  const rNow = await evalJs(`parseFloat(document.getElementById('sess-fill').style.width) / 100`);
+  const warnProbe = Math.max(0.05, Math.min(0.95, rNow - 0.02));
+  const dangerProbe = Math.max(0.1, Math.min(1, rNow - 0.01));
+  await evalJs(`(() => { const el = document.getElementById('set-warn'); el.value = '${warnProbe}'; el.dispatchEvent(new Event('input', {bubbles:true})); return 1; })()`);
   await new Promise((r) => setTimeout(r, 400));
   let st = await setDirect('noop', 0).catch(() => null);
-  const clsW = await evalJs(`document.getElementById('sess-fill').className + ' | warnAt=' + (window.__lastWarn = document.getElementById('set-warn').value)`);
-  check('warn@0.2 colors 25%-used bar warn', clsW.startsWith('fill warn'), clsW);
+  const clsW = await evalJs(`document.getElementById('sess-fill').className + ' | warnAt=' + document.getElementById('set-warn').value + ' | r=${rNow}'`);
+  check('warn below current usage colors bar warn', clsW.startsWith('fill warn'), clsW);
   await evalJs(`(() => { const el = document.getElementById('set-warn'); el.value = '0.75'; el.dispatchEvent(new Event('input', {bubbles:true})); return 1; })()`);
-  await evalJs(`(() => { const el = document.getElementById('set-danger'); el.value = '0.2'; el.dispatchEvent(new Event('input', {bubbles:true})); return 1; })()`);
+  await evalJs(`(() => { const el = document.getElementById('set-danger'); el.value = '${dangerProbe}'; el.dispatchEvent(new Event('input', {bubbles:true})); return 1; })()`);
   await new Promise((r) => setTimeout(r, 400));
-  const clsD = await evalJs(`document.getElementById('sess-fill').className + ' | danger=' + document.getElementById('set-danger').value`);
-  check('danger@0.2 colors bar danger', clsD.startsWith('fill danger'), clsD);
+  const clsD = await evalJs(`document.getElementById('sess-fill').className + ' | danger=' + document.getElementById('set-danger').value + ' | r=${rNow}'`);
+  check('danger below current usage colors bar danger', clsD.startsWith('fill danger'), clsD);
   await evalJs(`(() => { const el = document.getElementById('set-danger'); el.value = '0.9'; el.dispatchEvent(new Event('input', {bubbles:true})); return 1; })()`);
 
   console.log('== 7. clamping ==');
@@ -147,6 +152,19 @@ const check = (name, cond, detail) => {
   s = await setDirect('pollMinutes', 2);
   check('poll 2 accepted', s.pollMinutes === 2, String(s.pollMinutes));
   await setDirect('pollMinutes', 1);
+
+  console.log('== 9. apiToken (cloud source) ==');
+  await drag('set-apitoken', '  test-token-abc  ');
+  await new Promise((r) => setTimeout(r, 300));
+  s = await setDirect('noop', 0);
+  check('token typed + trimmed', s.apiToken === 'test-token-abc', JSON.stringify(s.apiToken));
+  check('UI input shows trimmed value', await evalJs(`document.getElementById('set-apitoken').value`) === 'test-token-abc');
+  check('non-string rejected', (await setDirect('apiToken', 42)).apiToken === 'test-token-abc');
+  await drag('set-apitoken', '');
+  await new Promise((r) => setTimeout(r, 300));
+  s = await setDirect('noop', 0);
+  check('cleared -> empty (back to local source)', s.apiToken === '', JSON.stringify(s.apiToken));
+  await shot('verify-apitoken.png');
 
   console.log(`\n${passed} passed, ${failed} failed`);
   cdp.close();

@@ -4,7 +4,7 @@ const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, screen } = require
 const path = require('path');
 const fs = require('fs');
 const { execFile } = require('child_process');
-const { fetchQuota } = require('./src/quota');
+const { fetchQuota, fetchQuotaCloud } = require('./src/quota');
 const { aggregateWireStats } = require('./src/wirestats');
 const { QuotaHistory } = require('./src/history');
 
@@ -22,6 +22,7 @@ const DEFAULT_SETTINGS = {
   theme: 'dark',
   pollMinutes: 1,
   expanded: false,
+  apiToken: '',        // Kimi Code Console API key -> cloud usage source (works without the desktop app)
 };
 
 let win = null;
@@ -159,7 +160,9 @@ function pollOnce() {
   if (pollPromise) return pollPromise;
   pollPromise = (async () => {
     try {
-      const quota = await fetchQuota();
+      const quota = settings.apiToken
+        ? await fetchQuotaCloud(settings.apiToken)
+        : await fetchQuota();
       if (quota.ok) {
         history.record(quota);
         lastQuota = quota;
@@ -196,6 +199,7 @@ function buildPayload(quota) {
 function buildFromQuota(quota, now) {
   const payload = { ok: true, fetchedAt: now, settings };
   payload.kind = quota.kind;
+  payload.source = quota.source || 'local';
   payload.limit5h = quota.limit5h;
   payload.monthCode = quota.monthCode;
   payload.monthTotal = quota.monthTotal;
@@ -303,7 +307,10 @@ ipcMain.handle('set-setting', (_e, key, value) => {
     const n = Number(value);
     if (!Number.isFinite(n)) return settings; // reject garbage, keep old value
     settings[key] = Math.min(hi, Math.max(lo, key === 'fontSize' || key === 'pollMinutes' ? Math.round(n) : n));
-  } else if (typeof DEFAULT_SETTINGS[key] === 'boolean') {
+    } else if (key === 'apiToken') {
+      if (typeof value !== 'string') return settings;
+      settings[key] = value.trim().slice(0, 200); // empty string -> back to the local desktop-app source
+    } else if (typeof DEFAULT_SETTINGS[key] === 'boolean') {
     if (typeof value !== 'boolean') return settings;
     settings[key] = value;
   } else {
