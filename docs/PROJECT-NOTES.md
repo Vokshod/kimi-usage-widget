@@ -4,7 +4,7 @@ Dev-facing knowledge that took real debugging to acquire. **Do not "simplify" an
 
 ## The Kimi Code local usage API
 
-- Endpoint: `GET {origin}/api/v1/oauth/usage` where `{origin}` comes from `~/.kimi-code/server/rc.json` (`local_origin`, e.g. `http://127.0.0.1:23125`). Re-read **every** poll — the desktop app restart changes port/nonce.
+- Endpoint: `GET {origin}/api/v1/oauth/usage` where `{origin}` comes from the desktop app's server registry — **app >= 2.4.0 (2026-11-01): `~/.kimi-code/server/instances/<server_id>.json` files** shaped `{"host","port","pid","heartbeat_at","host_version"}`; pick the freshest `heartbeat_at` (stale files linger after restarts). Older apps: `~/.kimi-code/server/rc.json` `local_origin`. Re-read **every** poll — restarts change port/server_id.
 - Auth: `Authorization: Bearer <~/.kimi-code/server.token>` (43-byte token, re-read every poll).
 - Response shape (verified 2026-10-30):
 

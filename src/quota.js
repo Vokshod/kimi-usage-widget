@@ -1,6 +1,7 @@
 // Fetches Kimi Code quota from the desktop app's local server.
-// Reads ~/.kimi-code/server/rc.json (origin) and ~/.kimi-code/server.token
-// on every call, so it follows app restarts and re-logins automatically.
+// Reads the server registry (instances dir, then rc.json) and
+// ~/.kimi-code/server.token on every call, so it follows app restarts,
+// re-logins, and app updates that move the registry.
 'use strict';
 
 const fs = require('fs');
@@ -9,20 +10,39 @@ const os = require('os');
 
 const KIMI_DIR = path.join(os.homedir(), '.kimi-code');
 const RC_FILE = path.join(KIMI_DIR, 'server', 'rc.json');
+const INSTANCES_DIR = path.join(KIMI_DIR, 'server', 'instances');
 const TOKEN_FILE = path.join(KIMI_DIR, 'server.token');
 const DEFAULT_ORIGIN = 'http://127.0.0.1:23125';
 
+// app >= 2.4.0: registry is server/instances/<id>.json files {host, port,
+// pid, heartbeat_at, ...}; rc.json with local_origin is the older layout.
+// Pick the instance with the freshest heartbeat — stale files linger after
+// app restarts.
 function readServerInfo() {
-  let origin = DEFAULT_ORIGIN;
+  let origin = null;
   try {
-    const rc = JSON.parse(fs.readFileSync(RC_FILE, 'utf8'));
-    if (rc.local_origin) origin = rc.local_origin;
-  } catch (_) { /* rc.json missing -> desktop app not running or default port */ }
-  let token = null;
+    let best = null;
+    for (const f of fs.readdirSync(INSTANCES_DIR)) {
+      if (!f.endsWith('.json')) continue;
+      const inst = JSON.parse(fs.readFileSync(path.join(INSTANCES_DIR, f), 'utf8'));
+      if (!inst.host || !inst.port) continue;
+      if (!best || (inst.heartbeat_at || 0) > (best.heartbeat_at || 0)) best = inst;
+    }
+    if (best) origin = `http://${best.host}:${best.port}`;
+  } catch (_) { /* no instances dir -> older app or not running */ }
+  if (!origin) {
+    try {
+      const rc = JSON.parse(fs.readFileSync(RC_FILE, 'utf8'));
+      if (rc.local_origin) origin = rc.local_origin;
+    } catch (_) { /* rc.json missing -> desktop app not running or default port */ }
+  }
+  return { origin: origin || DEFAULT_ORIGIN, token: readToken() };
+}
+
+function readToken() {
   try {
-    token = fs.readFileSync(TOKEN_FILE, 'utf8').trim();
-  } catch (_) { /* no token */ }
-  return { origin, token };
+    return fs.readFileSync(TOKEN_FILE, 'utf8').trim();
+  } catch (_) { return null; /* no token */ }
 }
 
 function normalizeUsage(usage) {
