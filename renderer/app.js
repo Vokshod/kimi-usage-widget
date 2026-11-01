@@ -158,7 +158,7 @@ function renderStats(s) {
     nums.className = 'mnums';
     const today = document.createElement('b');
     today.textContent = fmtTokens(m.today);
-    nums.append(today, ` today · ${fmtTokens(m.last7d)} 7d · ${fmtTokens(m.totalTokens)} total · ${m.requests} req`);
+    nums.append(today, ` today · ${fmtTokens(m.last7d)} 7d · ${m.requests} req`);
     row.append(name, nums);
     list.appendChild(row);
   }
@@ -169,11 +169,12 @@ function renderStats(s) {
   const days = s.daily || [];
   const max = Math.max(1, ...days.map((d) => d.totalTokens));
   const todayStart = s.todayStart;
+  const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   for (const d of days) {
     const col = document.createElement('div');
     col.className = 'wcol';
     const h = Math.max(3, (d.totalTokens / max) * 40);
-    const label = new Date(d.dayStartMs).toLocaleDateString(undefined, { weekday: 'narrow' });
+    const label = DAY_NAMES[new Date(d.dayStartMs).getDay()];
     col.innerHTML = `<div class="wbar${d.dayStartMs === todayStart ? ' today' : ''}" style="height:${h}px" title="${fmtTokens(d.totalTokens)} tokens"></div>
       <div class="wday">${label}</div>`;
     chart.appendChild(col);
