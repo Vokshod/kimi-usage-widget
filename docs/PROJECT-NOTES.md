@@ -39,6 +39,7 @@ Set an API token in the widget settings (from the [Kimi Code Console](https://ww
 - Response shape (snake_case, normalized by `fetchQuotaCloud` in `src/quota.js`): `{ usages: { limit_5h, limit_7d, limit_month_total, limit_month_code: { used_ratio, reset_time } }, boosterWallet: { balanceCents, totalCents, monthlyChargeLimitEnabled, monthlyChargeLimitCents, monthlyUsedCents, currency } }`. `used_ratio` may be a number OR numeric string; `reset_time` may be absent.
 - Errors: 401/403 → key rejected (response body `error.message` is shown); 404 → that region's host lacks the endpoint, try the other.
 - Both hosts answer from a Russian IP (verified 2026-11-02) — no VPN needed. The OAuth `server.token` does NOT work as an API key (401).
+- **Cloud `limit_5h.resetAt` can be a PAST instant** when the current window has expired but no new request has started the next one (observed 2026-11-02: ~11h in the past). The widget handles it: `elapsed` clamps to 1, so projected == usedRatio ("on track to use N%"). The local source always reported a future `resetAt` — a cloud-source quirk, not a bug.
 - Token is stored in `%APPDATA%\kimi-usage-widget\settings.json` (local only, never committed); empty string = back to the local desktop-app source. An "API" badge in the widget header shows which source is active.
 
 ### The 5h window is FIXED, not rolling
@@ -86,7 +87,8 @@ Formulas in `main.js buildFromQuota` / `app.js renderQuota`, cross-checked again
 ## Verification toolkit
 
 - `node test-data.js` — exercises `src/quota.js` (live API), `src/wirestats.js` (real logs), `src/history.js` (round-trip + interpolation) without Electron.
-- `node cdp-verify-settings.js <port>` — 19 assertions simulating real slider drags/checkbox clicks over the Chrome DevTools protocol; launches the widget with `--remote-debugging-port`.
+- `node cdp-verify-settings.js <port>` — 23 assertions simulating real slider drags/checkbox clicks over the Chrome DevTools protocol; launches the widget with `--remote-debugging-port`.
+- **CDP verification dirties the REAL settings**: the debug instance uses the same `%APPDATA%\kimi-usage-widget\settings.json` as the user's widget, and the suite leaves it at last-dragged extremes (seen: scale 1.6 / font 18 / opacity 0.2). After every verification run, restore the user's preferred defaults (scale 1.1, fontSize 15, opacity 1.0) in settings.json BEFORE relaunching clean.
 - `node cdp-shot.js <port>` — dumps widget DOM state + captures collapsed/expanded/settings screenshots.
 - Run instances hidden; kill via `Get-Process electron | Where-Object { $_.Path -like '*KimiUsageWidget*' } | Stop-Process -Force`.
 
