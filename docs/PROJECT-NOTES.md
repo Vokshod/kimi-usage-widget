@@ -87,7 +87,7 @@ Formulas in `main.js buildFromQuota` / `app.js renderQuota`, cross-checked again
 ## Verification toolkit
 
 - `node test-data.js` — exercises `src/quota.js` (live API), `src/wirestats.js` (real logs), `src/history.js` (round-trip + interpolation) without Electron.
-- `node cdp-verify-settings.js <port>` — 23 assertions simulating real slider drags/checkbox clicks over the Chrome DevTools protocol; launches the widget with `--remote-debugging-port`.
+- `node cdp-verify-settings.js <port>` — 32 assertions simulating real slider drags/checkbox clicks over the Chrome DevTools protocol; launches the widget with `--remote-debugging-port`.
 - **CDP verification dirties the REAL settings**: the debug instance uses the same `%APPDATA%\kimi-usage-widget\settings.json` as the user's widget, and the suite leaves it at last-dragged extremes (seen: scale 1.6 / font 18 / opacity 0.2). After every verification run, restore the user's preferred defaults (scale 1.1, fontSize 15, opacity 1.0) in settings.json BEFORE relaunching clean.
 - `node cdp-shot.js <port>` — dumps widget DOM state + captures collapsed/expanded/settings screenshots.
 - Run instances hidden; kill via `Get-Process electron | Where-Object { $_.Path -like '*KimiUsageWidget*' } | Stop-Process -Force`.
