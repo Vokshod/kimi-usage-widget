@@ -44,6 +44,20 @@ function shortModel(name) {
 }
 
 // ---------- rendering ----------
+function isWide() {
+  return !settings.vertical || expanded || settingsOpen;
+}
+
+function setFill(el, ratio) {
+  const pct = `${Math.min(100, ratio * 100)}%`;
+  if (settings.vertical) {
+    el.style.width = '100%';
+    el.style.height = pct; // vertical bar fills bottom-up
+  } else {
+    el.style.height = '100%';
+    el.style.width = pct;
+  }
+}
 function barClass(ratio) {
   if (ratio == null) return 'fill';
   if (ratio >= settings.dangerAt) return 'fill danger';
@@ -70,8 +84,9 @@ function renderQuota(p) {
   // session (5h window)
   if (p.limit5h) {
     const r = p.limit5h.usedRatio;
-    $('sess-fill').style.width = `${Math.min(100, r * 100)}%`;
-    $('sess-fill').className = barClass(r);
+    const fill = $('sess-fill');
+    setFill(fill, r);
+    fill.className = barClass(r);
     $('sess-pct').textContent = fmtPct(r);
     const resetMs = p.limit5h.resetAt ? new Date(p.limit5h.resetAt).getTime() - now : NaN;
     $('sess-reset').textContent = Number.isFinite(resetMs) ? 'resets in ' + fmtCountdown(resetMs) : '';
@@ -99,8 +114,9 @@ function renderQuota(p) {
   // monthly
   if (p.monthCode) {
     const r = p.monthCode.usedRatio;
-    $('month-fill').style.width = `${Math.min(100, r * 100)}%`;
-    $('month-fill').className = barClass(r);
+    const fill = $('month-fill');
+    setFill(fill, r);
+    fill.className = barClass(r);
     $('month-pct').textContent = fmtPct(r);
     const resetMs = p.monthCode.resetAt ? new Date(p.monthCode.resetAt).getTime() - now : NaN;
     $('month-reset').textContent = Number.isFinite(resetMs)
@@ -199,7 +215,8 @@ function reportHeight() {
     if (Math.abs(h - lastReportedHeight) < 2 && now - lastReportAt < 2000) return;
     lastReportedHeight = h;
     lastReportAt = now;
-    window.widget.setHeight(h, settings.scale || 1);
+    app.classList.toggle('wide', isWide()); // slim-mode header depends on it
+    window.widget.setHeight(h, settings.scale || 1, isWide());
   });
 }
 
@@ -207,6 +224,7 @@ function reportHeight() {
 function applySettingsToUI() {
   document.documentElement.style.setProperty('--font-size', settings.fontSize + 'px');
   app.classList.toggle('compact', !!settings.compact);
+  app.classList.toggle('vertical', !!settings.vertical);
   app.classList.toggle('theme-light', settings.theme === 'light');
   app.classList.toggle('theme-dark', settings.theme !== 'light');
   $('set-scale').value = settings.scale;
@@ -218,6 +236,7 @@ function applySettingsToUI() {
   $('set-aot').checked = !!settings.alwaysOnTop;
   $('set-autostart').checked = !!settings.autostart;
   $('set-compact').checked = !!settings.compact;
+  $('set-vertical').checked = !!settings.vertical;
   $('set-theme').checked = settings.theme === 'light';
   $('set-warn').value = settings.warnAt;
   $('set-danger').value = settings.dangerAt;
@@ -267,6 +286,7 @@ bindSetting('set-opacity', 'opacity', Number);
 bindSetting('set-aot', 'alwaysOnTop');
 bindSetting('set-autostart', 'autostart');
 bindSetting('set-compact', 'compact');
+bindSetting('set-vertical', 'vertical');
 bindSetting('set-theme', 'theme', (checked) => (checked ? 'light' : 'dark'));
 bindSetting('set-warn', 'warnAt', Number);
 bindSetting('set-danger', 'dangerAt', Number);

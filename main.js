@@ -17,6 +17,7 @@ const DEFAULT_SETTINGS = {
   alwaysOnTop: true,
   autostart: false,    // launch hidden at Windows login (startup-folder shortcut)
   compact: false,      // bars only, no countdown text
+  vertical: false,     // slim vertical layout (narrow window, vertical bars); goes wide for details/settings
   warnAt: 0.75,
   dangerAt: 0.9,
   theme: 'dark',
@@ -43,7 +44,7 @@ function loadSettings() {
         ? Math.min(hi, Math.max(lo, key === 'fontSize' || key === 'pollMinutes' ? Math.round(n) : n))
         : DEFAULT_SETTINGS[key];
     }
-    for (const key of ['alwaysOnTop', 'autostart', 'compact', 'expanded']) {
+    for (const key of ['alwaysOnTop', 'autostart', 'compact', 'vertical', 'expanded']) {
       if (typeof settings[key] !== 'boolean') settings[key] = DEFAULT_SETTINGS[key];
     }
     if (settings.theme !== 'dark' && settings.theme !== 'light') settings.theme = DEFAULT_SETTINGS.theme;
@@ -121,9 +122,20 @@ function setSizeVerified(w, h) {
   }
 }
 
+// content widths in unzoomed CSS px: normal horizontal layout vs slim vertical
+const WIDE_CSS = 340;
+const SLIM_CSS = 170;
+// the renderer reports whether it currently wants the wide layout
+// (horizontal mode, or vertical with details/settings open); main sizes to it
+let lastWide = true;
+
+function desiredTargetW(wide, scale) {
+  return Math.max(140, Math.round((wide ? WIDE_CSS : SLIM_CSS) * scale));
+}
+
 function applyScale() {
   if (!win) return;
-  targetW = Math.max(200, Math.round(340 * settings.scale));
+  targetW = desiredTargetW(lastWide, settings.scale);
   win.webContents.setZoomFactor(settings.scale);
   setSizeVerified(targetW, win.getSize()[1]);
 }
@@ -334,6 +346,10 @@ ipcMain.on('layout-report', (_e, r) => {
   if (!win || !r) return;
   if (Math.abs((r.scale || 1) - settings.scale) > 0.001) return; // stale zoom, fresh report follows
   const scale = settings.scale || 1;
+  const wide = r.wide !== false; // undefined (older renderer) means wide
+  lastWide = wide;
+  const wantW = desiredTargetW(wide, scale);
+  if (Math.abs(wantW - (targetW || 0)) > 2) { targetW = wantW; } // mode changed, converge below
   const realW = Math.round(r.innerW * scale);   // viewport DIP (inner*scale)
   const realH = Math.round(r.innerH * scale);
   const needH = Math.max(80, Math.round(r.appH * scale)); // content DIP (appH*scale)

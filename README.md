@@ -10,9 +10,15 @@ An always-on-top desktop widget for **Kimi Code** quota: the 5-hour session wind
 - **SESSION · 5h** — usage %, reset countdown, and a projection: at your current burn rate, what % of the window will you consume by reset (≤85% *pace ok*, ≤100% *tight*, >100% *over pace*).
 - **MONTHLY** — usage %, reset date + countdown, and the daily line: `today +1.84% · budget 3.0%/day · under budget · 28d left`. "Today" is measured against the widget's own per-minute quota history at local midnight; the budget spreads the remaining quota evenly over the days left until reset.
 - **▾ Model stats** — per-model tokens (today / 7d / request counts) from your Kimi Code session logs, plus a 7-day per-day token chart.
-- **⚙ Settings** — size (true UI zoom), font size, opacity, always-on-top, launch at Windows login, compact mode, light theme, warn/danger thresholds, refresh interval, and an API token for the cloud source. All persisted.
+- **⚙ Settings** — size (true UI zoom), font size, opacity, always-on-top, launch at Windows login, compact mode, slim vertical layout, light theme, warn/danger thresholds, refresh interval, and an API token for the cloud source. All persisted.
 
 ![Settings](docs/screenshot-settings.png)
+
+### Slim vertical layout
+
+A narrow, tower-style variant: vertical bars that fill bottom-up, big percentages, and status lines that wrap word by word. The window slims to ~170px and goes back to full width whenever you open the model stats or settings.
+
+![Slim vertical layout](docs/screenshot-vertical.png)
 - System tray: show/hide, refresh now, always-on-top, launch at login, quit. `−` minimizes to tray.
 - Self-healing window layout, auto-refresh every minute (configurable), transient network failures handled silently with last-good data.
 
@@ -64,7 +70,7 @@ src/quota.js            usage fetchers — local server + cloud API (pure Node, 
 src/wirestats.js        wire-log aggregation (pure Node)
 src/history.js          quota ratio history + midnight baseline (pure Node)
 test-data.js            smoke test for the src modules
-cdp-verify-settings.js  23-assertion UI/settings verification over the DevTools protocol
+cdp-verify-settings.js  32-assertion UI/settings verification over the DevTools protocol
 cdp-shot.js             DOM dump + screenshots over the DevTools protocol
 fetch-electron.sh       parallel-range Electron binary downloader (mirror fallback)
 Kimi Usage Widget.vbs   hidden launcher (no console window)
@@ -77,7 +83,7 @@ docs/                   design notes, audit report, screenshots
 node test-data.js                 # data modules against live data
 # full UI/settings suite (widget must run with a debug port):
 powershell -Command "Start-Process -WindowStyle Hidden -WorkingDirectory . -FilePath 'node_modules\electron\dist\electron.exe' -ArgumentList '.','--remote-debugging-port=9226'"
-node cdp-verify-settings.js 9226  # expect: 23 passed, 0 failed
+node cdp-verify-settings.js 9226  # expect: 32 passed, 0 failed
 ```
 
 ## Troubleshooting

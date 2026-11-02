@@ -207,3 +207,41 @@ body {
   --text: #22222a;
   --dim: #77778a;
 }
+
+/* slim vertical layout: narrow column, vertical bars, word-wrapped status */
+#app.vertical #drag { flex-wrap: wrap; row-gap: 2px; }
+/* brand on its own row only while the window is actually slim */
+#app.vertical:not(.wide) #drag .brand { flex-basis: 100%; }
+#app.vertical:not(.wide) #drag .spacer { display: none; }
+#app.vertical:not(.wide) #drag .icon-btn { padding: 2px 8px; }
+
+#app.vertical .label-row { flex-wrap: wrap; }
+#app.vertical .label-row .value {
+  flex-basis: 100%;
+  margin-top: 1px;
+}
+#app.vertical .reset { margin-left: 6px; }
+
+#app.vertical .bar {
+  height: 90px;
+  position: relative;
+  margin-top: 6px;
+}
+#app.vertical .fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 0%;
+  transition: height 0.6s ease, background 0.4s ease;
+}
+
+/* status lines wrap word-by-word in the narrow column */
+#app.vertical .sub {
+  white-space: normal;
+  line-height: 1.45;
+}
+
+/* details: model name over its numbers in the narrow column */
+#app.vertical #model-list .mrow { flex-direction: column; gap: 0; }
+#app.vertical #model-list .mnums { white-space: normal; }

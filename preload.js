@@ -8,7 +8,7 @@ contextBridge.exposeInMainWorld('widget', {
   refresh: () => ipcRenderer.invoke('refresh'),
   setSetting: (key, value) => ipcRenderer.invoke('set-setting', key, value),
   getSettings: () => ipcRenderer.invoke('get-settings'),
-  setHeight: (h, scaleTag) => ipcRenderer.send('layout-report', { innerW: window.innerWidth, innerH: window.innerHeight, appH: h, scale: scaleTag }),
+  setHeight: (h, scaleTag, wide) => ipcRenderer.send('layout-report', { innerW: window.innerWidth, innerH: window.innerHeight, appH: h, scale: scaleTag, wide }),
   setWidth: (w) => ipcRenderer.send('window-width', w),
   hide: () => ipcRenderer.send('window-hide'),
   quit: () => ipcRenderer.send('window-quit'),

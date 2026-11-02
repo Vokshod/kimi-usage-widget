@@ -147,6 +147,9 @@ const check = (name, cond, detail) => {
   s = await setDirect('warnAt', 'abc'); check('warnAt abc rejected', s.warnAt === 0.75, String(s.warnAt));
   s = await setDirect('pollMinutes', 0.2); check('poll 0.2 -> 1', s.pollMinutes === 1, String(s.pollMinutes));
   s = await setDirect('fontSize', 99); check('font 99 -> 18', s.fontSize === 18, String(s.fontSize));
+  s = await setDirect('scale', 1);
+  await new Promise((r) => setTimeout(r, 800));
+  check('scale restored to 1 after clamp tests', s.scale === 1, String(s.scale));
 
   console.log('== 8. pollMinutes ==');
   s = await setDirect('pollMinutes', 2);
@@ -165,6 +168,46 @@ const check = (name, cond, detail) => {
   s = await setDirect('noop', 0);
   check('cleared -> empty (back to local source)', s.apiToken === '', JSON.stringify(s.apiToken));
   await shot('verify-apitoken.png');
+
+  console.log('== 10. vertical (slim) layout ==');
+  // the suite opened the settings panel at the start and never closed it —
+  // normalize to a known state first
+  if (!(await evalJs(`document.getElementById('settings-panel').classList.contains('hidden')`))) {
+    await click('btn-settings');
+    await new Promise((r) => setTimeout(r, 400));
+  }
+  const physW = async () => (await metrics()).innerW * (await metrics()).dpr;
+  const expectSlim = 170 * baseDpr, expectWide = 340 * baseDpr; // scale is 1.0 here
+  await click('btn-settings'); // open panel (the toggle lives here)
+  await new Promise((r) => setTimeout(r, 300));
+  await click('set-vertical');
+  await new Promise((r) => setTimeout(r, 400));
+  check('vertical class applied', await evalJs(`document.getElementById('app').classList.contains('vertical')`));
+  await new Promise((r) => setTimeout(r, 1500));
+  let w = await physW();
+  check('stays wide while settings open', Math.abs(w - expectWide) <= 14, `${Math.round(w)} vs ${Math.round(expectWide)}`);
+  await shot('verify-vertical-settings-wide.png');
+  await click('btn-settings'); // close panel -> slim
+  await new Promise((r) => setTimeout(r, 2000));
+  w = await physW();
+  check('slims to ~170 when panel closed', Math.abs(w - expectSlim) <= 14, `${Math.round(w)} vs ${Math.round(expectSlim)}`);
+  const vFillH = await evalJs(`document.getElementById('month-fill').style.height`);
+  check('monthly fill driven by height', /%$/.test(vFillH), vFillH);
+  await shot('verify-vertical-slim.png');
+  await click('btn-expand'); // details -> wide
+  await new Promise((r) => setTimeout(r, 2000));
+  w = await physW();
+  check('goes wide for details', Math.abs(w - expectWide) <= 14, `${Math.round(w)} vs ${Math.round(expectWide)}`);
+  await click('btn-expand'); // close details -> slim again
+  await new Promise((r) => setTimeout(r, 2000));
+  w = await physW();
+  check('slims again when details closed', Math.abs(w - expectSlim) <= 14, `${Math.round(w)} vs ${Math.round(expectSlim)}`);
+  await click('set-vertical'); // checkbox works hidden — no need to open the panel
+  await new Promise((r) => setTimeout(r, 400));
+  check('vertical class removed', await evalJs(`!document.getElementById('app').classList.contains('vertical')`));
+  await new Promise((r) => setTimeout(r, 2000));
+  w = await physW();
+  check('width restored to 340', Math.abs(w - expectWide) <= 14, `${Math.round(w)} vs ${Math.round(expectWide)}`);
 
   console.log(`\n${passed} passed, ${failed} failed`);
   cdp.close();
