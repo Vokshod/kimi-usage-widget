@@ -11,6 +11,8 @@ An always-on-top desktop widget for **Kimi Code** quota: the 5-hour session wind
 - **MONTHLY** — usage %, reset date + countdown, and the daily line: `today +1.84% · budget 3.0%/day · under budget · 28d left`. "Today" is measured against the widget's own per-minute quota history at local midnight; the budget spreads the remaining quota evenly over the days left until reset.
 - **▾ Model stats** — per-model tokens (today / 7d / request counts) from your Kimi Code session logs, plus a 7-day per-day token chart.
 - **⚙ Settings** — size (true UI zoom), font size, opacity, always-on-top, launch at Windows login, compact mode, light theme, warn/danger thresholds, refresh interval, and an API token for the cloud source. All persisted.
+
+![Settings](docs/screenshot-settings.png)
 - System tray: show/hide, refresh now, always-on-top, launch at login, quit. `−` minimizes to tray.
 - Self-healing window layout, auto-refresh every minute (configurable), transient network failures handled silently with last-good data.
 
