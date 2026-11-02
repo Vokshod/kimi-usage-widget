@@ -70,7 +70,7 @@ src/quota.js            usage fetchers — local server + cloud API (pure Node, 
 src/wirestats.js        wire-log aggregation (pure Node)
 src/history.js          quota ratio history + midnight baseline (pure Node)
 test-data.js            smoke test for the src modules
-cdp-verify-settings.js  32-assertion UI/settings verification over the DevTools protocol
+cdp-verify-settings.js  35-assertion UI/settings verification over the DevTools protocol
 cdp-shot.js             DOM dump + screenshots over the DevTools protocol
 fetch-electron.sh       parallel-range Electron binary downloader (mirror fallback)
 Kimi Usage Widget.vbs   hidden launcher (no console window)
@@ -83,7 +83,7 @@ docs/                   design notes, audit report, screenshots
 node test-data.js                 # data modules against live data
 # full UI/settings suite (widget must run with a debug port):
 powershell -Command "Start-Process -WindowStyle Hidden -WorkingDirectory . -FilePath 'node_modules\electron\dist\electron.exe' -ArgumentList '.','--remote-debugging-port=9226'"
-node cdp-verify-settings.js 9226  # expect: 32 passed, 0 failed
+node cdp-verify-settings.js 9226  # expect: 35 passed, 0 failed
 ```
 
 ## Troubleshooting

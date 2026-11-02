@@ -15,3 +15,6 @@ quota-history.json
 # OS noise
 Thumbs.db
 Desktop.ini
+
+# Kimi Code session cache
+.kimi-code/

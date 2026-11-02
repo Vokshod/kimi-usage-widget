@@ -103,6 +103,14 @@ function renderQuota(p) {
         paceEl.innerHTML = `<span class="hot">over pace</span> · would hit ${projPct}% before reset`;
       }
     }
+  } else {
+    // quota field disappeared (e.g. legacy plan change) — don't leave stale numbers up
+    const fill = $('sess-fill');
+    setFill(fill, 0);
+    fill.className = 'fill';
+    $('sess-pct').textContent = '–';
+    $('sess-reset').textContent = '';
+    $('sess-pace').textContent = '';
   }
 
   // monthly
@@ -134,6 +142,14 @@ function renderQuota(p) {
     }
     if (p.monthDaysLeft != null) parts.push(`${p.monthDaysLeft}d left`);
     $('month-daily').innerHTML = parts.join(' · ');
+  } else {
+    // monthly quota field missing — clear instead of showing stale numbers
+    const fill = $('month-fill');
+    setFill(fill, 0);
+    fill.className = 'fill';
+    $('month-pct').textContent = '–';
+    $('month-reset').textContent = '';
+    $('month-daily').textContent = '';
   }
 
   // extra usage

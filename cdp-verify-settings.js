@@ -96,6 +96,11 @@ const check = (name, cond, detail) => {
   await drag('set-font', '18');
   await new Promise((r) => setTimeout(r, 300));
   check('font 18px', (await metrics()).bodyFont === '18px');
+  // the largest font must not clip the wrap-allowed sub row (audit #9)
+  check('month-daily not clipped at font 18', await evalJs(`(() => {
+    const el = document.getElementById('month-daily');
+    return el.scrollWidth <= el.clientWidth + 2;
+  })()`), await evalJs(`document.getElementById('month-daily').scrollWidth + '/' + document.getElementById('month-daily').clientWidth`));
   await drag('set-font', '13');
   await new Promise((r) => setTimeout(r, 300));
   check('font back 13px', (await metrics()).bodyFont === '13px');
@@ -134,12 +139,16 @@ const check = (name, cond, detail) => {
   let st = await setDirect('noop', 0).catch(() => null);
   const clsW = await evalJs(`document.getElementById('sess-fill').className + ' | warnAt=' + document.getElementById('set-warn').value + ' | r=${rNow}'`);
   check('warn below current usage colors bar warn', clsW.startsWith('fill warn'), clsW);
-  await evalJs(`(() => { const el = document.getElementById('set-warn'); el.value = '0.75'; el.dispatchEvent(new Event('input', {bubbles:true})); return 1; })()`);
   await evalJs(`(() => { const el = document.getElementById('set-danger'); el.value = '${dangerProbe}'; el.dispatchEvent(new Event('input', {bubbles:true})); return 1; })()`);
   await new Promise((r) => setTimeout(r, 400));
   const clsD = await evalJs(`document.getElementById('sess-fill').className + ' | danger=' + document.getElementById('set-danger').value + ' | r=${rNow}'`);
   check('danger below current usage colors bar danger', clsD.startsWith('fill danger'), clsD);
+  // restore: danger FIRST (higher), then warn — restoring in the opposite
+  // order makes the pair clamp pull warn below the still-low danger probe
   await evalJs(`(() => { const el = document.getElementById('set-danger'); el.value = '0.9'; el.dispatchEvent(new Event('input', {bubbles:true})); return 1; })()`);
+  await new Promise((r) => setTimeout(r, 400));
+  await evalJs(`(() => { const el = document.getElementById('set-warn'); el.value = '0.75'; el.dispatchEvent(new Event('input', {bubbles:true})); return 1; })()`);
+  await new Promise((r) => setTimeout(r, 400));
 
   console.log('== 7. clamping ==');
   let s = await setDirect('opacity', 0); check('opacity 0 -> 0.2', s.opacity === 0.2, String(s.opacity));
@@ -147,6 +156,12 @@ const check = (name, cond, detail) => {
   s = await setDirect('warnAt', 'abc'); check('warnAt abc rejected', s.warnAt === 0.75, String(s.warnAt));
   s = await setDirect('pollMinutes', 0.2); check('poll 0.2 -> 1', s.pollMinutes === 1, String(s.pollMinutes));
   s = await setDirect('fontSize', 99); check('font 99 -> 18', s.fontSize === 18, String(s.fontSize));
+  // warnAt must never end up >= dangerAt — the pair clamp pulls warn below danger (audit #12)
+  s = await setDirect('dangerAt', 0.3);
+  check('dangerAt 0.3 pulls warnAt below it', s.dangerAt === 0.3 && s.warnAt < s.dangerAt, `warnAt=${s.warnAt} dangerAt=${s.dangerAt}`);
+  s = await setDirect('dangerAt', 0.9);
+  s = await setDirect('warnAt', 0.75);
+  check('thresholds restored 0.75/0.9', s.warnAt === 0.75 && s.dangerAt === 0.9, `warnAt=${s.warnAt} dangerAt=${s.dangerAt}`);
   s = await setDirect('scale', 1);
   await new Promise((r) => setTimeout(r, 800));
   check('scale restored to 1 after clamp tests', s.scale === 1, String(s.scale));

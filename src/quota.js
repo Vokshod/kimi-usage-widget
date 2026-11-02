@@ -17,16 +17,21 @@ const DEFAULT_ORIGIN = 'http://127.0.0.1:23125';
 // app >= 2.4.0: registry is server/instances/<id>.json files {host, port,
 // pid, heartbeat_at, ...}; rc.json with local_origin is the older layout.
 // Pick the instance with the freshest heartbeat — stale files linger after
-// app restarts.
+// app restarts. A bad file must not abort the scan of the rest.
 function readServerInfo() {
   let origin = null;
   try {
     let best = null;
     for (const f of fs.readdirSync(INSTANCES_DIR)) {
       if (!f.endsWith('.json')) continue;
-      const inst = JSON.parse(fs.readFileSync(path.join(INSTANCES_DIR, f), 'utf8'));
-      if (!inst.host || !inst.port) continue;
-      if (!best || (inst.heartbeat_at || 0) > (best.heartbeat_at || 0)) best = inst;
+      let inst = null;
+      try {
+        inst = JSON.parse(fs.readFileSync(path.join(INSTANCES_DIR, f), 'utf8'));
+      } catch (_) { continue; } // one corrupt file must not kill discovery
+      if (!inst || typeof inst.host !== 'string' || !inst.host) continue;
+      const port = Number(inst.port);
+      if (!Number.isInteger(port) || port < 1 || port > 65535) continue;
+      if (!best || (inst.heartbeat_at || 0) > (best.heartbeat_at || 0)) best = { host: inst.host, port, heartbeat_at: inst.heartbeat_at || 0 };
     }
     if (best) origin = `http://${best.host}:${best.port}`;
   } catch (_) { /* no instances dir -> older app or not running */ }
@@ -45,12 +50,27 @@ function readToken() {
   } catch (_) { return null; /* no token */ }
 }
 
+// Strict ratio coercion: real numbers, or numeric strings from the cloud API.
+// Rejects '' / null / booleans / objects, which Number() would quietly pass.
+function toRatio(v) {
+  if (typeof v === 'number') return Number.isFinite(v) && v >= 0 ? v : null;
+  if (typeof v === 'string' && /^-?\d+(\.\d+)?$/.test(v.trim())) {
+    const n = Number(v);
+    return n >= 0 ? n : null;
+  }
+  return null;
+}
+
+function validResetAt(s) {
+  if (typeof s !== 'string' || !s) return null;
+  return Number.isFinite(new Date(s).getTime()) ? s : null;
+}
+
 function normalizeUsage(usage) {
   if (!usage || typeof usage !== 'object') return null;
-  const usedRatio = Number(usage.usedRatio);
-  if (!Number.isFinite(usedRatio)) return null;
-  const resetMs = new Date(usage.resetAt).getTime();
-  return { ...usage, usedRatio, resetAt: Number.isFinite(resetMs) ? usage.resetAt : null };
+  const usedRatio = toRatio(usage.usedRatio);
+  if (usedRatio == null) return null;
+  return { ...usage, usedRatio, resetAt: validResetAt(usage.resetAt) };
 }
 
 async function fetchQuota() {
@@ -106,10 +126,9 @@ const CLOUD_BASES = ['https://api.kimi.com/coding/v1', 'https://api.kimi.ai/codi
 
 function normalizeCloudUsage(u) {
   if (!u || typeof u !== 'object') return null;
-  const usedRatio = Number(u.used_ratio ?? u.usedRatio);
-  if (!Number.isFinite(usedRatio)) return null;
-  const resetAt = typeof u.reset_time === 'string' && u.reset_time.length > 0 ? u.reset_time : null;
-  return { usedRatio, resetAt };
+  const usedRatio = toRatio(u.used_ratio ?? u.usedRatio);
+  if (usedRatio == null) return null;
+  return { usedRatio, resetAt: validResetAt(u.reset_time ?? u.resetAt) };
 }
 
 async function fetchQuotaCloud(apiKey) {
@@ -137,7 +156,7 @@ async function fetchQuotaCloud(apiKey) {
         return { ok: false, reason: 'shape', message: 'Unexpected cloud usage response shape', raw: body };
       }
       const u = body.usages || {};
-      return {
+      const result = {
         ok: true,
         kind: 'ok',
         source: 'api',
@@ -148,6 +167,11 @@ async function fetchQuotaCloud(apiKey) {
         monthTotal: normalizeCloudUsage(u.limit_month_total),
         extraUsage: body.boosterWallet || null,
       };
+      // a response with no usable quota fields shows nothing — treat as an error
+      if (!result.limit5h && !result.limit7d && !result.monthCode && !result.monthTotal) {
+        return { ok: false, reason: 'shape', message: 'Cloud usage response had no quota fields', raw: body };
+      }
+      return result;
     } catch (err) {
       lastNetErr = err; // network/geo failure — try the other region's host
     }

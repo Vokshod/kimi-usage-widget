@@ -48,11 +48,19 @@ function loadSettings() {
       if (typeof settings[key] !== 'boolean') settings[key] = DEFAULT_SETTINGS[key];
     }
     if (settings.theme !== 'dark' && settings.theme !== 'light') settings.theme = DEFAULT_SETTINGS.theme;
+    if (typeof settings.apiToken !== 'string') settings.apiToken = '';
+    else settings.apiToken = settings.apiToken.trim().slice(0, 200);
+    if (settings.warnAt >= settings.dangerAt) settings.warnAt = Math.max(0.05, settings.dangerAt - 0.05);
   } catch (_) { /* keep defaults */ }
 }
 
 function saveSettings() {
-  try { fs.writeFileSync(settingsFile, JSON.stringify(settings, null, 2)); } catch (_) { /* ignore */ }
+  // temp file + rename: a crash mid-write can never leave a truncated settings.json
+  try {
+    const tmp = `${settingsFile}.tmp-${process.pid}`;
+    fs.writeFileSync(tmp, JSON.stringify(settings, null, 2));
+    fs.renameSync(tmp, settingsFile);
+  } catch (_) { /* ignore */ }
 }
 
 // ---------- Windows autostart (startup-folder shortcut -> hidden VBS launch) ----------
@@ -168,18 +176,21 @@ function send(channel, payload) {
 }
 
 let pollPromise = null;
+let sourceGen = 0; // bumped when the data source changes; responses from older generations are discarded
+
 function pollOnce() {
   if (pollPromise) return pollPromise;
+  const gen = sourceGen;
   pollPromise = (async () => {
     try {
       const quota = settings.apiToken
         ? await fetchQuotaCloud(settings.apiToken)
         : await fetchQuota();
-      if (quota.ok) {
+      if (quota.ok && gen === sourceGen) {
         history.record(quota);
         lastQuota = quota;
       }
-      send('quota', buildPayload(quota));
+      if (gen === sourceGen) send('quota', buildPayload(quota));
     } catch (err) {
       send('quota', buildPayload({ ok: false, message: err.message || 'Quota refresh failed' }));
     } finally {
@@ -227,9 +238,11 @@ function buildFromQuota(quota, now) {
   // sustainable daily budget until monthly reset
   if (quota.monthCode && quota.monthCode.resetAt) {
     const resetMs = new Date(quota.monthCode.resetAt).getTime();
-    const daysLeft = Math.max(1, Math.ceil((resetMs - now) / 86400000));
-    payload.monthDaysLeft = daysLeft;
-    payload.monthSustainablePerDay = Math.max(0, 1 - quota.monthCode.usedRatio) / daysLeft;
+    if (Number.isFinite(resetMs)) {
+      const daysLeft = Math.max(1, Math.ceil((resetMs - now) / 86400000));
+      payload.monthDaysLeft = daysLeft;
+      payload.monthSustainablePerDay = Math.max(0, 1 - quota.monthCode.usedRatio) / daysLeft;
+    }
   }
   return payload;
 }
@@ -283,15 +296,20 @@ function createTray() {
   const img = nativeImage.createFromPath(path.join(__dirname, 'assets', 'icon.ico'));
   tray = new Tray(img);
   tray.setToolTip('Kimi Usage Widget');
-  tray.on('click', () => (win.isVisible() ? win.hide() : win.show()));
+  tray.on('click', () => toggleWindow());
   updateTrayMenu();
+}
+
+function toggleWindow() {
+  if (!win || win.isDestroyed()) { createWindow(); return; }
+  win.isVisible() ? win.hide() : win.show();
 }
 
 // rebuilt on every settings change so checkbox states never go stale
 function updateTrayMenu() {
   if (!tray) return;
   const menu = Menu.buildFromTemplate([
-    { label: 'Show / Hide', click: () => (win.isVisible() ? win.hide() : win.show()) },
+    { label: 'Show / Hide', click: () => toggleWindow() },
     { label: 'Refresh now', click: pollOnce },
     { type: 'separator' },
     {
@@ -329,11 +347,18 @@ ipcMain.handle('set-setting', (_e, key, value) => {
     if (value !== 'dark' && value !== 'light') return settings;
     settings[key] = value;
   }
+  if (settings.warnAt >= settings.dangerAt) settings.warnAt = Math.max(0.05, settings.dangerAt - 0.05);
   saveSettings();
   applyWindowSettings();
   if (key === 'scale') applyScale();
   if (key === 'pollMinutes') restartPolling();
   if (key === 'autostart') setAutostart(!!settings.autostart);
+  if (key === 'apiToken') {
+    // source changed: discard in-flight + cached quota from the old source and re-poll
+    sourceGen++;
+    lastQuota = null;
+    pollOnce();
+  }
   updateTrayMenu();
   return settings;
 });

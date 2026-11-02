@@ -109,7 +109,8 @@ body {
   font-size: 0.82em;
   color: var(--dim);
   font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+  /* wraps when the line exceeds the window (small scales, large fonts) —
+     the self-healing height report grows the window to fit */
 }
 .sub .hot { color: var(--warn); }
 .sub .ok { color: var(--ok); }

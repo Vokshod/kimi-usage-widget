@@ -9,6 +9,7 @@ const os = require('os');
 
 const SESSIONS_DIR = path.join(os.homedir(), '.kimi-code', 'sessions');
 const SCAN_DAYS = 35; // only logs touched within this many days are read
+const MAX_FILE_BYTES = 16 * 1024 * 1024; // per-file read cap; logs are append-only so the tail holds recent records
 
 function localDayStartMs(ts) {
   const d = new Date(ts);
@@ -73,7 +74,16 @@ function aggregateWireStats(now = Date.now()) {
     scannedFiles += 1;
     let data;
     try {
-      data = fs.readFileSync(file, 'utf8');
+      const size = fs.statSync(file).size;
+      const readLen = Math.min(size, MAX_FILE_BYTES);
+      const fd = fs.openSync(file, 'r');
+      try {
+        const buf = Buffer.alloc(readLen);
+        fs.readSync(fd, buf, 0, readLen, size - readLen); // tail: recent records live at the end
+        data = buf.toString('utf8');
+      } finally {
+        fs.closeSync(fd);
+      }
     } catch (_) { continue; }
     for (const line of data.split('\n')) {
       if (!line.includes('"usage.record"')) continue;

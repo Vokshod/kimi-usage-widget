@@ -9,13 +9,35 @@ const path = require('path');
 
 const MAX_SAMPLES = 3000; // ~2 days at 1/min
 
+function toFiniteOrNull(v) {
+  return typeof v === 'number' && Number.isFinite(v) ? v : null;
+}
+
+// crash-safe persistence: write a temp file, then rename over the target —
+// a crash mid-write can never leave a truncated JSON file
+function writeJsonAtomic(file, obj) {
+  const tmp = `${file}.tmp-${process.pid}`;
+  fs.writeFileSync(tmp, JSON.stringify(obj));
+  fs.renameSync(tmp, file);
+}
+
 class QuotaHistory {
   constructor(file) {
     this.file = file;
     this.samples = [];
     try {
       const raw = JSON.parse(fs.readFileSync(file, 'utf8'));
-      if (Array.isArray(raw)) this.samples = raw.filter(s => s && typeof s.t === 'number');
+      if (Array.isArray(raw)) {
+        this.samples = raw
+          .filter(s => s && Number.isFinite(s.t))
+          .map(s => ({
+            t: s.t,
+            h5: toFiniteOrNull(s.h5),
+            mc: toFiniteOrNull(s.mc),
+            mt: toFiniteOrNull(s.mt),
+          }))
+          .sort((a, b) => a.t - b.t); // interpolation assumes sorted samples
+      }
     } catch (_) { /* first run */ }
   }
 
@@ -34,7 +56,7 @@ class QuotaHistory {
     }
     try {
       fs.mkdirSync(path.dirname(this.file), { recursive: true });
-      fs.writeFileSync(this.file, JSON.stringify(this.samples));
+      writeJsonAtomic(this.file, this.samples);
     } catch (_) { /* best effort */ }
   }
 
