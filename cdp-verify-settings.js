@@ -170,16 +170,21 @@ const check = (name, cond, detail) => {
   await shot('verify-apitoken.png');
 
   console.log('== 10. vertical (slim) layout ==');
-  // the suite opened the settings panel at the start and never closed it —
-  // normalize to a known state first
+  // force a known state through the UI: setDirect bypasses the renderer's
+  // in-memory settings, and the user may have left vertical on — the panel
+  // must be open for the checkbox anyway
   if (!(await evalJs(`document.getElementById('settings-panel').classList.contains('hidden')`))) {
-    await click('btn-settings');
+    await click('btn-settings'); // close if the suite left it open
+    await new Promise((r) => setTimeout(r, 400));
+  }
+  await click('btn-settings'); // open
+  await new Promise((r) => setTimeout(r, 300));
+  if (await evalJs(`document.getElementById('set-vertical').checked`)) {
+    await click('set-vertical'); // ensure OFF before the assertions begin
     await new Promise((r) => setTimeout(r, 400));
   }
   const physW = async () => (await metrics()).innerW * (await metrics()).dpr;
   const expectSlim = 170 * baseDpr, expectWide = 340 * baseDpr; // scale is 1.0 here
-  await click('btn-settings'); // open panel (the toggle lives here)
-  await new Promise((r) => setTimeout(r, 300));
   await click('set-vertical');
   await new Promise((r) => setTimeout(r, 400));
   check('vertical class applied', await evalJs(`document.getElementById('app').classList.contains('vertical')`));
@@ -191,8 +196,8 @@ const check = (name, cond, detail) => {
   await new Promise((r) => setTimeout(r, 2000));
   w = await physW();
   check('slims to ~170 when panel closed', Math.abs(w - expectSlim) <= 14, `${Math.round(w)} vs ${Math.round(expectSlim)}`);
-  const vFillH = await evalJs(`document.getElementById('month-fill').style.height`);
-  check('monthly fill driven by height', /%$/.test(vFillH), vFillH);
+  const vFillW = await evalJs(`document.getElementById('month-fill').style.width`);
+  check('monthly fill still width-driven in vertical mode', /%$/.test(vFillW), vFillW);
   await shot('verify-vertical-slim.png');
   await click('btn-expand'); // details -> wide
   await new Promise((r) => setTimeout(r, 2000));

@@ -49,14 +49,8 @@ function isWide() {
 }
 
 function setFill(el, ratio) {
-  const pct = `${Math.min(100, ratio * 100)}%`;
-  if (settings.vertical) {
-    el.style.width = '100%';
-    el.style.height = pct; // vertical bar fills bottom-up
-  } else {
-    el.style.height = '100%';
-    el.style.width = pct;
-  }
+  el.style.height = '100%';
+  el.style.width = `${Math.min(100, ratio * 100)}%`;
 }
 function barClass(ratio) {
   if (ratio == null) return 'fill';

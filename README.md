@@ -16,7 +16,7 @@ An always-on-top desktop widget for **Kimi Code** quota: the 5-hour session wind
 
 ### Slim vertical layout
 
-A narrow, tower-style variant: vertical bars that fill bottom-up, big percentages, and status lines that wrap word by word. The window slims to ~170px and goes back to full width whenever you open the model stats or settings.
+A narrow, tower-style variant: the same slim progress bars stacked in a ~170px column, big percentages, and status lines that wrap word by word. The window slims down and goes back to full width whenever you open the model stats or settings.
 
 ![Slim vertical layout](docs/screenshot-vertical.png)
 - System tray: show/hide, refresh now, always-on-top, launch at login, quit. `−` minimizes to tray.
