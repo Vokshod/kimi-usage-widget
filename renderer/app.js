@@ -84,14 +84,32 @@ function renderQuota(p) {
     $('sess-pct').textContent = fmtPct(r);
     const resetMs = p.limit5h.resetAt ? new Date(p.limit5h.resetAt).getTime() - now : NaN;
     $('sess-reset').textContent = Number.isFinite(resetMs) ? 'resets in ' + fmtCountdown(resetMs) : '';
+    const WINDOW_MS = 5 * 3600000;
     const paceEl = $('sess-pace');
+    const elapsedMs = Number.isFinite(p.windowElapsedMs) ? p.windowElapsedMs : WINDOW_MS - resetMs;
     if (!Number.isFinite(resetMs)) {
       paceEl.textContent = '';
+    } else if (elapsedMs < 5 * 60000) {
+      // too early to judge: a burst in the first minutes would project absurdly
+      paceEl.innerHTML = '<span class="ok">pace ok</span> · on pace';
+    } else if (elapsedMs >= 30 * 60000 && typeof p.h5Ratio30mAgo === 'number') {
+      // recent-burn mode: extrapolate the last 30 minutes of consumption over
+      // the remaining window — reflects the CURRENT pace, not the window average
+      const recentDelta = Math.max(0, r - p.h5Ratio30mAgo);
+      const projected = r + recentDelta * (resetMs / (30 * 60000));
+      const projPct = Math.round(projected * 100);
+      if (projected <= 0.85) {
+        paceEl.innerHTML = `<span class="ok">pace ok</span> · on track to use ${projPct}% at current pace`;
+      } else if (projected <= 1.0) {
+        paceEl.innerHTML = `<span class="hot">tight</span> · ~${projPct}% by reset at current pace`;
+      } else {
+        paceEl.innerHTML = `<span class="hot">over pace</span> · would hit ${projPct}% before reset`;
+      }
     } else {
-      // projection: the 5h window is FIXED (verified against the live API —
-      // resetAt stays pinned between requests, usage only resets at the boundary),
-      // so at the current average burn rate, what % of the window is consumed by reset?
-      const WINDOW_MS = 5 * 3600000;
+      // window-average mode (5–30 min in): the 5h window is FIXED (verified
+      // against the live API — resetAt stays pinned between requests, usage
+      // only resets at the boundary), so at the average burn rate since window
+      // start, what % of the window is consumed by reset?
       const elapsed = Math.min(1, Math.max(0.02, 1 - resetMs / WINDOW_MS));
       const projected = r / elapsed; // 1.0 = exactly 100% consumed at reset
       const projPct = Math.round(projected * 100);

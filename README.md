@@ -7,7 +7,7 @@ An always-on-top desktop widget for **Kimi Code** quota: the 5-hour session wind
 
 ## Features
 
-- **SESSION · 5h** — usage %, reset countdown, and a projection: at your current burn rate, what % of the window will you consume by reset (≤85% *pace ok*, ≤100% *tight*, >100% *over pace*).
+- **SESSION · 5h** — usage %, reset countdown, and a pace projection. First 5 minutes of a window always read *pace ok*. From 5–30 minutes it projects the window average (at your burn rate since the window started, what % is consumed by reset). After 30 minutes it switches to **current pace**: it extrapolates only the last 30 minutes of consumption over the remaining window, so an early burst stops dominating the verdict (≤85% *pace ok*, ≤100% *tight*, >100% *over pace*).
 - **MONTHLY** — usage %, reset date + countdown, and the daily line: `today +1.84% · budget 3.0%/day · under budget · 28d left`. "Today" is measured against the widget's own per-minute quota history at local midnight; the budget spreads the remaining quota evenly over the days left until reset.
 - **▾ Model stats** — per-model tokens (today / 7d / request counts) from your Kimi Code session logs, plus a 7-day per-day token chart.
 - **⚙ Settings** — size (true UI zoom), font size, opacity, always-on-top, launch at Windows login, compact mode, slim vertical layout, light theme, warn/danger thresholds, refresh interval, and an API token for the cloud source. All persisted.
@@ -71,6 +71,7 @@ src/wirestats.js        wire-log aggregation (pure Node)
 src/history.js          quota ratio history + midnight baseline (pure Node)
 test-data.js            smoke test for the src modules
 cdp-verify-settings.js  35-assertion UI/settings verification over the DevTools protocol
+cdp-verify-pace.js      9-assertion pace-logic verification (synthetic payloads through the real renderer)
 cdp-shot.js             DOM dump + screenshots over the DevTools protocol
 fetch-electron.sh       parallel-range Electron binary downloader (mirror fallback)
 Kimi Usage Widget.vbs   hidden launcher (no console window)

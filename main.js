@@ -228,6 +228,16 @@ function buildFromQuota(quota, now) {
   payload.monthTotal = quota.monthTotal;
   payload.extraUsage = quota.extraUsage;
 
+  // pace inputs for the 5h window: how long the fixed window has been running
+  // and what the ratio was 30 minutes ago (for the recent-burn pace mode)
+  if (quota.limit5h && quota.limit5h.resetAt) {
+    const resetMs = new Date(quota.limit5h.resetAt).getTime();
+    if (Number.isFinite(resetMs)) {
+      payload.windowElapsedMs = Math.max(0, Math.min(5 * 3600000, now - (resetMs - 5 * 3600000)));
+      payload.h5Ratio30mAgo = history.valueAt('h5', now - 30 * 60000);
+    }
+  }
+
   // "consumed today" for the monthly quota, from midnight baseline
   const dayStart = new Date(now); dayStart.setHours(0, 0, 0, 0);
   payload.dayStartMs = dayStart.getTime();
